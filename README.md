@@ -1,6 +1,6 @@
 # 🌱 Crop Climate Meta-Analysis Blockchain Consensus
 
-![Crop & Climate Banner](https://images.unsplash.com/photo-1582719478180-9b3e6e5b3e3d?auto=format&fit=crop&w=1200&q=80)
+![Crop & Climate Banner](https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTFqcJ8_IpspDM9rjxgwR2A1u3tWm9js1S_wg&s)
 
 A decentralized platform that leverages **blockchain technology** for collaborative climate-crop data analysis, enabling researchers, farmers, and policymakers to reach consensus on climate impacts on agriculture with transparency and security.
 
