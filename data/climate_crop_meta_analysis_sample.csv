@@ -1,0 +1,6 @@
+Study_ID,Title,Year,Country,Crop,Temp_Change_C,Rainfall_Change_pct,CO2_ppm,Yield_Impact_pct,Sample_Size,Methodology,DOI
+1,Impact of Temperature Rise on Rice Yield in India,2020,India,Rice,1.2,-8,410,-7.5,250,Regression Analysis,10.1016/j.agwat.2020.106123
+2,Drought Stress Effects on Maize Yield in USA,2018,USA,Maize,0.9,-12,405,-5.2,180,Field Experiment,10.2134/agronj2018.01.0023
+3,Climate Variability and Wheat Yield in Australia,2019,Australia,Wheat,1.0,-6,408,-3.8,200,Time Series Analysis,10.1007/s00484-019-01745-3
+4,Effect of Elevated CO2 on Soybean Yield in Brazil,2021,Brazil,Soybean,1.3,2,415,4.1,220,Simulation Model,10.1016/j.fcr.2021.108089
+5,Rainfall Variability Impact on Rice Yield in Bangladesh,2017,Bangladesh,Rice,0.7,-15,400,-6.3,150,Survey + Statistical Model,10.1016/j.wace.2017.06.002

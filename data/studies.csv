@@ -1,0 +1,3 @@
+Study_ID,Title,Year,Country,Crop,Temperature Change (°C),Rainfall Change (%),CO2 levels,Yield Impact (%),Sample Size,Methodology,DOI
+S1,Climate Impact on Rice,2020,India,Rice,1.2,-5,410,-10,1000,Regression,10.1000/xyz123
+S2,Wheat Yield Study,2018,USA,Wheat,0.8,3,405,5,800,Field Study,10.1000/abc456
