@@ -5,16 +5,33 @@ function Login() {
   const [account, setAccount] = useState(null);
   const navigate = useNavigate(); // initialize navigate
 
-  const connectWallet = async () => {
+const connectWallet = async () => {
     try {
       if (window.ethereum) {
         const accounts = await window.ethereum.request({
           method: "eth_requestAccounts",
         });
+        
+        const walletAddress = accounts[0];
+        setAccount(walletAddress);
 
-        setAccount(accounts[0]);
-        // Redirect to dashboard after login
-        navigate("/dashboard"); // <-- add this
+        // --- NEW: Call Python Backend to Register/Login ---
+        const response = await fetch("http://127.0.0.1:8000/register", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ wallet_address: walletAddress }),
+        });
+
+        const data = await response.json();
+        
+        if (response.ok) {
+          // You might want to save the role in LocalStorage for the Dashboard to see
+          localStorage.setItem("userRole", data.role);
+          localStorage.setItem("userAccount", walletAddress);
+          navigate("/dashboard");
+        } else {
+          alert("Backend registration failed: " + data.error);
+        }
       } else {
         const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
 

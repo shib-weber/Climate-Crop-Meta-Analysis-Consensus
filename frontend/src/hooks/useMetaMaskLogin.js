@@ -1,6 +1,5 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import Web3 from "web3";
-import accountsData from "../data/accounts.json"; 
 
 function useMetaMaskLogin() {
   const [account, setAccount] = useState(null);
@@ -8,20 +7,45 @@ function useMetaMaskLogin() {
 
   const connectWallet = async () => {
     if (window.ethereum) {
-      const web3 = new Web3(window.ethereum);
       try {
-        const accounts = await window.ethereum.request({ method: "eth_requestAccounts" });
-        setAccount(accounts[0]);
+        const web3 = new Web3(window.ethereum);
 
-        // Get role from JSON
-        const user = accountsData.find(a => a.address.toLowerCase() === accounts[0].toLowerCase());
-        if (user) setRole(user.role);
-        else setRole("researcher"); // default role
+        const accounts = await window.ethereum.request({
+          method: "eth_requestAccounts",
+        });
+
+        const walletAddress = accounts[0];
+        setAccount(walletAddress);
+
+        // 🔥 CALL BACKEND (instead of JSON)
+        const response = await fetch("http://127.0.0.1:8000/register", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            wallet_address: walletAddress,
+          }),
+        });
+
+        const data = await response.json();
+
+        if (response.ok) {
+          setRole(data.role);
+
+          // optional: store in localStorage
+          localStorage.setItem("userRole", data.role);
+          localStorage.setItem("userAccount", walletAddress);
+        } else {
+          console.error("Backend error:", data.detail);
+          alert("Login failed: " + data.detail);
+        }
+
       } catch (err) {
-        console.error("User rejected connection", err);
+        console.error("Connection error:", err);
       }
     } else {
-      alert("MetaMask not installed! Please install it to continue.");
+      alert("MetaMask not installed!");
     }
   };
 
