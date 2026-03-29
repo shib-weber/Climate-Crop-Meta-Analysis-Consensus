@@ -1,6 +1,17 @@
-import React, { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import useMetaMaskLogin from "../hooks/useMetaMaskLogin";
 import Footer from "../components/Footer";
+import Web3 from "web3";
+import { Web3Storage } from "web3.storage";
+import contractABI from "../../../abi/ClimateConsensus.json";
+
+const contractAddress = "YOUR_CONTRACT_ADDRESS";
+
+// ✅ Web3.Storage client
+const client = new Web3Storage({
+  token: "YOUR_WEB3STORAGE_API_TOKEN",
+});
+
 import {
   LineChart,
   Line,
@@ -8,24 +19,28 @@ import {
   YAxis,
   CartesianGrid,
   Tooltip,
-  ResponsiveContainer
+  ResponsiveContainer,
 } from "recharts";
 
 function Dashboard() {
+  const [file, setFile] = useState(null);
+  const [loading, setLoading] = useState(false);
   const { account, role, connectWallet } = useMetaMaskLogin();
 
   const [stats, setStats] = useState({
     correlation: 0,
     trend: [],
-    loading: true
+    loading: true,
   });
+
+  const fileInputRef = useRef(null);
 
   useEffect(() => {
     if (!account) connectWallet();
     fetchAnalysis();
   }, [account]);
 
-  // Fetch BigQuery data from backend
+  // 📊 Fetch analytics
   const fetchAnalysis = async () => {
     try {
       const response = await fetch("http://127.0.0.1:8000/meta-analysis");
@@ -34,25 +49,73 @@ function Dashboard() {
       setStats({
         correlation: data.correlation,
         trend: data.trend || [],
-        loading: false
+        loading: false,
       });
     } catch (err) {
       console.error("BigQuery fetch failed", err);
       setStats({
         correlation: 0,
         trend: [],
-        loading: false
+        loading: false,
       });
     }
   };
 
-  // If wallet not connected
+  // 🚀 Upload function
+  const handleUpload = async () => {
+    if (!file) return alert("Select file");
+
+    try {
+      setLoading(true);
+
+      // 1️⃣ Upload to Web3.Storage
+      const cid = await client.put([file]);
+      const ipfsHash = cid;
+
+      console.log("CID:", cid);
+
+      // 2️⃣ Connect Web3
+      const web3 = new Web3(window.ethereum);
+      const accounts = await web3.eth.getAccounts();
+
+      const contract = new web3.eth.Contract(
+        contractABI,
+        contractAddress
+      );
+
+      // 3️⃣ Send to blockchain
+      await contract.methods
+        .uploadDocument(ipfsHash)
+        .send({ from: accounts[0] });
+
+      alert("Uploaded successfully!");
+
+      setFile(null); // reset file
+
+    } catch (err) {
+      console.error(err);
+      alert("Upload failed");
+    }
+
+    setLoading(false);
+  };
+
+  // 🎯 Smart button behavior
+  const handleButtonClick = () => {
+    if (!file) {
+      fileInputRef.current.click();
+    } else {
+      handleUpload();
+    }
+  };
+
+  // 🔐 Wallet not connected
   if (!account) {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center bg-gray-950 text-white">
         <h2 className="text-2xl mb-4 font-bold">Climate Research Portal</h2>
         <button
-          className="bg-green-600 px-8 py-3 rounded-full font-bold shadow-lg hover:bg-green-500 transition-all"
+          className="bg-green-600 px-8 py-3 rounded-full font-bold shadow-lg hover:bg-green-500"
           onClick={connectWallet}
         >
           Connect MetaMask to Enter
@@ -81,97 +144,82 @@ function Dashboard() {
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
 
-          {/* Left Panel */}
-          <div className="lg:col-span-1 space-y-6">
+          {/* LEFT PANEL */}
+          <div className="space-y-6">
 
             {role === "validator" && (
-              <section className="bg-gray-900 p-6 rounded-2xl border border-blue-900/30 shadow-xl">
+              <section className="bg-gray-900 p-6 rounded-2xl border border-blue-900/30">
                 <h2 className="text-xl font-bold mb-4">🛡️ Validator Actions</h2>
-                <div className="flex flex-col gap-3">
-                  <button className="bg-blue-600 py-3 rounded-xl hover:bg-blue-500">
-                    Verify Pending Papers
-                  </button>
-                  <button className="bg-gray-800 py-3 rounded-xl hover:bg-gray-700">
-                    View Audit Logs
-                  </button>
-                </div>
+                <button className="bg-blue-600 py-3 w-full rounded-xl mb-2">
+                  Verify Pending Papers
+                </button>
+                <button className="bg-gray-800 py-3 w-full rounded-xl">
+                  View Audit Logs
+                </button>
               </section>
             )}
 
             {role === "researcher" && (
-              <section className="bg-gray-900 p-6 rounded-2xl border border-purple-900/30 shadow-xl">
+              <section className="bg-gray-900 p-6 rounded-2xl border border-purple-900/30">
                 <h2 className="text-xl font-bold mb-4">🔬 Researcher Tools</h2>
-                <button className="w-full bg-purple-600 py-3 rounded-xl hover:bg-purple-500">
-                  Upload New Dataset (IPFS)
+
+                <input
+                  type="file"
+                  ref={fileInputRef}
+                  onChange={(e) => setFile(e.target.files[0])}
+                  className="hidden"
+                />
+
+                <button
+                  className="w-full bg-purple-600 py-3 rounded-xl"
+                  onClick={handleButtonClick}
+                >
+                  {loading
+                    ? "Uploading..."
+                    : file
+                    ? "Submit to Blockchain 🔗"
+                    : "Choose File 📁"}
                 </button>
+
+                {file && (
+                  <p className="mt-3 text-sm text-gray-400">
+                    Selected: {file.name}
+                  </p>
+                )}
               </section>
             )}
           </div>
 
-          {/* Right Panel */}
+          {/* RIGHT PANEL */}
           <div className="lg:col-span-2 space-y-6">
 
-            {/* Analytics Panel */}
-            <section className="bg-gray-900 p-6 rounded-2xl border border-gray-800 shadow-xl">
-              <div className="flex justify-between items-center mb-6">
-                <h2 className="text-xl font-bold">📊 Crop-Climate Meta-Analysis</h2>
-                <div className="text-right">
-                  <p className="text-xs text-gray-500 uppercase font-bold">
-                    Current Correlation
-                  </p>
-                  <p className={`text-2xl font-mono ${stats.correlation < 0 ? 'text-red-400' : 'text-green-400'}`}>
-                    {stats.loading ? "..." : stats.correlation.toFixed(4)}
-                  </p>
-                </div>
+            {/* Papers */}
+            <section className="bg-gray-900 p-6 rounded-2xl border border-gray-800">
+              <h2 className="text-xl font-bold mb-4">📄 Approved Research Papers</h2>
+              <div className="p-4 bg-gray-950 rounded-xl border border-gray-800">
+                Holistic Yield Analysis 2025.pdf
               </div>
+            </section>
 
-              {/* Chart */}
-              <div className="h-64 bg-gray-950 rounded-xl border border-gray-800 p-2">
+            {/* Analytics */}
+            <section className="bg-gray-900 p-6 rounded-2xl border border-gray-800">
+              <h2 className="text-xl font-bold mb-4">📊 Meta Analysis</h2>
+
+              <div className="h-64">
                 {stats.loading ? (
-                  <div className="flex items-center justify-center h-full text-gray-500">
-                    Loading chart...
-                  </div>
-                ) : stats.trend.length === 0 ? (
-                  <div className="flex items-center justify-center h-full text-gray-500">
-                    No trend data available
-                  </div>
+                  <p>Loading...</p>
                 ) : (
                   <ResponsiveContainer width="100%" height="100%">
                     <LineChart data={stats.trend}>
                       <CartesianGrid strokeDasharray="3 3" />
-                      <XAxis dataKey="year" stroke="#9ca3af" />
-                      <YAxis stroke="#9ca3af" />
+                      <XAxis dataKey="year" />
+                      <YAxis />
                       <Tooltip />
-                      <Line
-                        type="monotone"
-                        dataKey="temp"
-                        stroke="#22c55e"
-                        strokeWidth={2}
-                        dot={false}
-                      />
-                      <Line
-                        type="monotone"
-                        dataKey="yield"
-                        stroke="#3b82f6"
-                        strokeWidth={2}
-                        dot={false}
-                      />
+                      <Line type="monotone" dataKey="temp" stroke="#22c55e" />
+                      <Line type="monotone" dataKey="yield" stroke="#3b82f6" />
                     </LineChart>
                   </ResponsiveContainer>
                 )}
-              </div>
-            </section>
-
-            {/* Approved Papers */}
-            <section className="bg-gray-900 p-6 rounded-2xl border border-gray-800 shadow-xl">
-              <h2 className="text-xl font-bold mb-4">📄 Approved Research Papers</h2>
-              <div className="space-y-3">
-                <div className="p-4 bg-gray-950 rounded-xl flex justify-between items-center border border-gray-800 hover:border-green-500/50 transition">
-                  <span>Holistic Yield Analysis 2025.pdf</span>
-                  <span className="text-xs bg-green-900/30 text-green-400 px-3 py-1 rounded-full uppercase">
-                    On-Chain Verified
-                  </span>
-                </div>
               </div>
             </section>
 
