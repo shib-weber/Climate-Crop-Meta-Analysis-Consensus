@@ -9,6 +9,7 @@ from backend.meta_analysis import meta_analysis
 from backend.validator import validator
 from dotenv import load_dotenv
 import os
+os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = "crop-climate-3513c60299c8.json"
 
 load_dotenv()
 

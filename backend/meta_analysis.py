@@ -1,41 +1,49 @@
 from google.cloud import bigquery
 import pandas as pd
+import math
 
 def meta_analysis():
     client = bigquery.Client()
 
     query = """
         SELECT 
-            `Temperature Change (°C)` AS temp,
-            `Yield Impact (%)` AS yield
+            Year,
+            `Temp_Change_C` AS temp,
+            `Yield_Impact_pct` AS yield
         FROM `crop-climate.climate_data.crops`
-        WHERE `Temperature Change (°C)` IS NOT NULL
-        AND `Yield Impact (%)` IS NOT NULL
+        WHERE `Temp_Change_C` IS NOT NULL
+        AND `Yield_Impact_pct` IS NOT NULL
     """
 
     query_job = client.query(query)
     df = query_job.to_dataframe()
 
-    # Compute correlation (same as before)
-    correlation = df["temp"].corr(df["yield"])
+    # Handle empty dataframe
+    if df.empty:
+        return {
+            "message": "No data available",
+            "correlation": 0,
+            "trend": [],
+            "validated": []
+        }
 
-    # Optional: trend data for your chart
+    # Correlation
+    correlation = df["temp"].corr(df["yield"])
+    correlation = 0 if math.isnan(correlation) else float(correlation)
+
+    # Trend data
     trend = []
     if "Year" in df.columns:
-        trend_df = df.groupby("Year").agg({
+        trend_df = df.dropna(subset=["Year"]).groupby("Year").agg({
             "temp": "mean",
             "yield": "mean"
         }).reset_index()
 
-        trend = trend_df.rename(columns={
-            "Year": "year"
-        }).to_dict(orient="records")
+        trend = trend_df.rename(columns={"Year": "year"}).to_dict(orient="records")
 
     return {
         "message": "Temperature vs Yield Impact Correlation",
-        "correlation": float(correlation),
+        "correlation": correlation,
         "trend": trend,
-        "validated": [
-            {"name": "Climate Study 2024.pdf", "status": "verified"}
-        ]
+        "validated": []  # Replace later with MySQL data
     }
