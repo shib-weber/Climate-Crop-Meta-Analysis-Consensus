@@ -4,6 +4,7 @@ import Footer from "../components/Footer";
 import Web3 from "web3";
 import { Web3Storage } from "web3.storage";
 import contractABI from "../../../abi/ClimateConsensus.json";
+import { useNavigate } from "react-router-dom";
 
 const contractAddress = "YOUR_CONTRACT_ADDRESS";
 
@@ -23,6 +24,7 @@ import {
 } from "recharts";
 
 function Dashboard() {
+  const navigate=useNavigate();
   const [file, setFile] = useState(null);
   const [loading, setLoading] = useState(false);
   const { account, role, connectWallet } = useMetaMaskLogin();
@@ -42,6 +44,7 @@ function Dashboard() {
 
   // 📊 Fetch analytics
   const fetchAnalysis = async () => {
+    
     try {
       const response = await fetch("http://127.0.0.1:8000/meta-analysis");
       const data = await response.json();
@@ -150,7 +153,7 @@ function Dashboard() {
             {role === "validator" && (
               <section className="bg-gray-900 p-6 rounded-2xl border border-blue-900/30">
                 <h2 className="text-xl font-bold mb-4">🛡️ Validator Actions</h2>
-                <button className="bg-blue-600 py-3 w-full rounded-xl mb-2">
+                <button className="bg-blue-600 py-3 w-full rounded-xl mb-2" onClick={()=>navigate('/validator')}>
                   Verify Pending Papers
                 </button>
                 <button className="bg-gray-800 py-3 w-full rounded-xl">

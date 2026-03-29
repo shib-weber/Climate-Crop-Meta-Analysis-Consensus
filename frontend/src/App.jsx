@@ -4,6 +4,8 @@ import LandingPage from './Pages/LandingPage'
 import Login from "./Pages/Login";
 import Signup from "./Pages/Signup";
 import Dashboard from "./Pages/Dashboard"
+import ValidatorDashboard from "./Pages/ValidatorDashboard";
+import PaperValidation from "./Pages/PaperValidation";
 
 
 function App() {
@@ -15,6 +17,8 @@ function App() {
         <Route path="/login" element={<Login />} />
         <Route path="/signup" element={<Signup />} />
         <Route path="/dashboard" element={<Dashboard />} />
+        <Route path="/validator" element={<ValidatorDashboard />} />
+        <Route path="/validate/:id" element={<PaperValidation />} />
       </Routes>
     </BrowserRouter>
   )
