@@ -6,7 +6,7 @@ contract ClimateConsensus {
     struct Study {
         string studyID;
         string doi;
-        bytes32 dataHash;
+        string cid;
         uint256 approvals;
         bool verified;
     }
@@ -14,12 +14,15 @@ contract ClimateConsensus {
     address public owner;
     uint256 public requiredApprovals = 2;
 
+    // 🔹 Storage
     mapping(string => Study) public studies;
     mapping(address => bool) public validators;
     mapping(string => mapping(address => bool)) public voted;
 
-    // 🔔 Events (important for frontend)
-    event StudySubmitted(string studyID, string doi);
+    string[] public studyList; // ✅ IMPORTANT (for listing)
+
+    // 🔔 Events
+    event StudySubmitted(string studyID, string doi, string cid);
     event StudyApproved(string studyID, address validator);
     event StudyVerified(string studyID);
     event ValidatorAdded(address validator);
@@ -39,7 +42,7 @@ contract ClimateConsensus {
         _;
     }
 
-    // ➕ Add validator (only owner)
+    // ➕ Add validator
     function addValidator(address _validator) public onlyOwner {
         require(_validator != address(0), "Invalid address");
         validators[_validator] = true;
@@ -50,9 +53,10 @@ contract ClimateConsensus {
     function submitStudy(
         string memory _studyID,
         string memory _doi,
-        bytes32 _dataHash
+        string memory _cid
     ) public {
         require(bytes(_studyID).length > 0, "Invalid ID");
+        require(bytes(_cid).length > 0, "Invalid CID");
 
         // Prevent duplicate
         require(bytes(studies[_studyID].studyID).length == 0, "Study exists");
@@ -60,15 +64,17 @@ contract ClimateConsensus {
         studies[_studyID] = Study({
             studyID: _studyID,
             doi: _doi,
-            dataHash: _dataHash,
+            cid: _cid,
             approvals: 0,
             verified: false
         });
 
-        emit StudySubmitted(_studyID, _doi);
+        studyList.push(_studyID); // ✅ store ID
+
+        emit StudySubmitted(_studyID, _doi, _cid);
     }
 
-    // ✅ Approve study (only validators)
+    // ✅ Approve study (ONE vote per validator)
     function approveStudy(string memory _studyID) public onlyValidator {
         require(bytes(studies[_studyID].studyID).length != 0, "Study not found");
         require(!voted[_studyID][msg.sender], "Already voted");
@@ -78,18 +84,19 @@ contract ClimateConsensus {
 
         emit StudyApproved(_studyID, msg.sender);
 
-        // 🎯 Consensus logic
+        // 🎯 Consensus
         if (studies[_studyID].approvals >= requiredApprovals) {
             studies[_studyID].verified = true;
             emit StudyVerified(_studyID);
         }
     }
 
-    // 📖 Get study (custom getter like ABI)
+    // 📖 Get single study
     function getStudy(string memory _studyID)
         public
         view
         returns (
+            string memory,
             string memory,
             string memory,
             uint256,
@@ -99,6 +106,59 @@ contract ClimateConsensus {
         require(bytes(studies[_studyID].studyID).length != 0, "Study not found");
 
         Study memory s = studies[_studyID];
-        return (s.studyID, s.doi, s.approvals, s.verified);
+        return (s.studyID, s.doi, s.cid, s.approvals, s.verified);
+    }
+
+    // 📚 Get all study IDs
+    function getAllStudies() public view returns (string[] memory) {
+        return studyList;
+    }
+
+    // 🔍 Check if validator voted
+    function hasVoted(string memory _studyID, address _validator)
+        public
+        view
+        returns (bool)
+    {
+        return voted[_studyID][_validator];
+    }
+
+    // 🧠 Get ONLY pending studies for validator (NOT voted + NOT verified)
+    function getPendingStudies(address _validator)
+        public
+        view
+        returns (string[] memory)
+    {
+        uint count = 0;
+
+        // First pass: count
+        for (uint i = 0; i < studyList.length; i++) {
+            string memory id = studyList[i];
+
+            if (
+                !voted[id][_validator] &&
+                !studies[id].verified
+            ) {
+                count++;
+            }
+        }
+
+        // Second pass: store
+        string[] memory result = new string[](count);
+        uint index = 0;
+
+        for (uint i = 0; i < studyList.length; i++) {
+            string memory id = studyList[i];
+
+            if (
+                !voted[id][_validator] &&
+                !studies[id].verified
+            ) {
+                result[index] = id;
+                index++;
+            }
+        }
+
+        return result;
     }
 }

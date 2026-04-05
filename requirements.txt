@@ -1,3 +1,5 @@
 web3
 pandas
 python-dotenv
+db-dtypes
+google-cloud-bigquery

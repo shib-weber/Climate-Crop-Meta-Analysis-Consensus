@@ -1,17 +1,11 @@
 import { useEffect, useState, useRef } from "react";
 import useMetaMaskLogin from "../hooks/useMetaMaskLogin";
 import Footer from "../components/Footer";
-import Web3 from "web3";
-import { Web3Storage } from "web3.storage";
-import contractABI from "../../../abi/ClimateConsensus.json";
 import { useNavigate } from "react-router-dom";
+import Web3 from "web3";
+import contractABI from "../../../abi/ClimateConsensus.json";
 
-const contractAddress = "YOUR_CONTRACT_ADDRESS";
-
-// ✅ Web3.Storage client
-const client = new Web3Storage({
-  token: "YOUR_WEB3STORAGE_API_TOKEN",
-});
+const contractAddress = import.meta.env.VITE_CONTRACT_ADDRESS;
 
 import {
   LineChart,
@@ -65,44 +59,70 @@ function Dashboard() {
   };
 
   // 🚀 Upload function
-  const handleUpload = async () => {
-    if (!file) return alert("Select file");
+const handleUpload = async () => {
+  if (!file) return alert("Select file");
 
-    try {
-      setLoading(true);
+  const formData = new FormData();
+  formData.append("file", file);
+  const studyID = "study_" + Date.now();
+  const doi = "10.1000/test";
 
-      // 1️⃣ Upload to Web3.Storage
-      const cid = await client.put([file]);
-      const ipfsHash = cid;
+  formData.append("studyID", studyID);
+  formData.append("doi", doi);
 
-      console.log("CID:", cid);
+  try {
+    setLoading(true);
 
-      // 2️⃣ Connect Web3
-      const web3 = new Web3(window.ethereum);
-      const accounts = await web3.eth.getAccounts();
+    // 🔹 STEP 1: Upload to backend (Pinata)
+    const res = await fetch("http://127.0.0.1:8000/submit_study", {
+      method: "POST",
+      body: formData,
+    });
 
-      const contract = new web3.eth.Contract(
-        contractABI,
-        contractAddress
-      );
+    
+    const data = await res.json();
+    
 
-      // 3️⃣ Send to blockchain
-      await contract.methods
-        .uploadDocument(ipfsHash)
-        .send({ from: accounts[0] });
-
-      alert("Uploaded successfully!");
-
-      setFile(null); // reset file
-
-    } catch (err) {
-      console.error(err);
-      alert("Upload failed");
+    if (data.status !== "success") {
+      throw new Error(data.message);
     }
 
-    setLoading(false);
-  };
+    const cid = data.cid;
+    console.log("CID from backend:", cid);
 
+    // 🔹 STEP 2: Send to blockchain via MetaMask
+    const web3 = new Web3(window.ethereum);
+    const contract = new web3.eth.Contract(contractABI, contractAddress);
+
+try {
+  await contract.methods
+    .submitStudy(studyID, doi, cid)
+    .call({ from: account });
+
+  console.log("CALL SUCCESS");
+} catch (err) {
+  console.error("FULL ERROR:", err);
+
+  if (err?.data) {
+    console.error("ERROR DATA:", err.data);
+  }
+}
+
+    await contract.methods
+      .submitStudy(studyID, doi, cid)
+      .send({ from: account });
+
+    alert("✅ Uploaded & Submitted to Blockchain!");
+
+    setFile(null);
+
+  } catch (err) {
+    console.error(err);
+    alert("Upload failed");
+  }
+
+  setLoading(false);
+};
   // 🎯 Smart button behavior
   const handleButtonClick = () => {
     if (!file) {

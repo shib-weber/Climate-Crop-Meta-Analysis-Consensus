@@ -1,4 +1,4 @@
-from fastapi import FastAPI,UploadFile, File,HTTPException
+from fastapi import FastAPI,UploadFile, File,HTTPException,Form
 from pydantic import BaseModel
 import mysql.connector
 from mysql.connector import pooling
@@ -6,7 +6,8 @@ from fastapi.middleware.cors import CORSMiddleware
 from blockchain.scripts.deploy import deploy_blockchain
 from backend.submit_study import submit
 from backend.meta_analysis import meta_analysis
-from backend.validator import validator
+from backend.add_validator import add_validator
+from backend.routes.dash import router as dashboard_router
 from dotenv import load_dotenv
 import os
 os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = "crop-climate-3513c60299c8.json"
@@ -79,16 +80,32 @@ def deploy():
     address=deploy_blockchain()
     return("Server is Running and deployed at",address)
 
-@app.post('/submit_study')
-async def submit_study(file: UploadFile = File(...)):
-    result = submit(file)
-    return {"message":result}
+@app.post("/submit_study")
+async def submit_study(
+    file: UploadFile = File(...),
+    studyID: str = Form(...),
+    doi: str = Form(...)
+):
+    result = submit(file, studyID, doi)
+    return result
 
-@app.post('/validator')
-def validator_call():
-    outcome= validator()
-    return{outcome}
 
 @app.get('/meta-analysis')
 def meta_analysis_call():
     return meta_analysis()
+
+@app.post("/make-validator")
+def make_validator(wallet: str):
+    try:
+        tx_hash = add_validator(wallet)
+        return {
+            "status": "success",
+            "tx_hash": tx_hash
+        }
+    except Exception as e:
+        return {
+            "status": "error",
+            "message": str(e)
+        }
+        
+app.include_router(dashboard_router)

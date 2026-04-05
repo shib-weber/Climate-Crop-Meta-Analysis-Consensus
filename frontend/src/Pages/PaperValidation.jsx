@@ -1,30 +1,45 @@
 import { useParams } from "react-router-dom";
-import {useState ,useEffect} from "react"
+import { useEffect, useState } from "react";
+import Web3 from "web3";
+import contractABI from "../../../abi/ClimateConsensus.json";
 
+const contractAddress = import.meta.env.VITE_CONTRACT_ADDRESS;
 function PaperValidation() {
   const { id } = useParams();
 
   const [paper, setPaper] = useState(null);
-  const [analysis, setAnalysis] = useState(null);
 
   useEffect(() => {
-    // Demo fetch
-    const demoPaper = {
-      title: "Climate Yield Prediction using AI",
-      fileUrl: "https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf",
-    };
-
-    const demoAnalysis = {
-      correlation: 0.82,
-      summary: "Strong positive correlation between temperature and yield.",
-    };
-
-    setPaper(demoPaper);
-    setAnalysis(demoAnalysis);
+    loadPaper();
   }, [id]);
 
-  const handleVote = (vote) => {
-    alert(`You voted: ${vote}`);
+  const loadPaper = async () => {
+    const web3 = new Web3(window.ethereum);
+    const contract = new web3.eth.Contract(contractABI, contractAddress);
+
+    const study = await contract.methods.getStudy(id).call();
+
+    const cid = study[2];
+
+    setPaper({
+      title: study[1],
+      fileUrl: `https://gateway.pinata.cloud/ipfs/${cid}`,
+    });
+  };
+
+  const handleVote = async () => {
+    const web3 = new Web3(window.ethereum);
+    const contract = new web3.eth.Contract(contractABI, contractAddress);
+
+    const accounts = await window.ethereum.request({
+      method: "eth_requestAccounts",
+    });
+
+    await contract.methods.approveStudy(id).send({
+      from: accounts[0],
+    });
+
+    alert("Vote submitted ✅");
   };
 
   if (!paper) return <p className="text-white">Loading...</p>;
@@ -33,7 +48,7 @@ function PaperValidation() {
     <div className="min-h-screen bg-gray-950 text-white p-8">
       <h1 className="text-2xl font-bold mb-4">{paper.title}</h1>
 
-      {/* PDF Viewer */}
+      {/* PDF from IPFS */}
       <div className="h-[500px] mb-6 border border-gray-800 rounded-xl overflow-hidden">
         <iframe
           src={paper.fileUrl}
@@ -42,27 +57,13 @@ function PaperValidation() {
         />
       </div>
 
-      {/* Meta Analysis */}
-      <div className="bg-gray-900 p-4 rounded-xl mb-6">
-        <h2 className="text-xl font-bold mb-2">Meta Analysis</h2>
-        <p>Correlation: {analysis?.correlation}</p>
-        <p>{analysis?.summary}</p>
-      </div>
-
       {/* Voting */}
       <div className="flex gap-4">
         <button
-          onClick={() => handleVote("ACCEPT")}
+          onClick={handleVote}
           className="bg-green-600 px-6 py-3 rounded-xl"
         >
-          Accept ✅
-        </button>
-
-        <button
-          onClick={() => handleVote("REJECT")}
-          className="bg-red-600 px-6 py-3 rounded-xl"
-        >
-          Reject ❌
+          Approve ✅
         </button>
       </div>
     </div>

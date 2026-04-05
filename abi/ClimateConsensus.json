@@ -37,6 +37,12 @@
 				"internalType": "string",
 				"name": "doi",
 				"type": "string"
+			},
+			{
+				"indexed": false,
+				"internalType": "string",
+				"name": "cid",
+				"type": "string"
 			}
 		],
 		"name": "StudySubmitted",
@@ -95,6 +101,38 @@
 		"type": "function"
 	},
 	{
+		"inputs": [],
+		"name": "getAllStudies",
+		"outputs": [
+			{
+				"internalType": "string[]",
+				"name": "",
+				"type": "string[]"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "address",
+				"name": "_validator",
+				"type": "address"
+			}
+		],
+		"name": "getPendingStudies",
+		"outputs": [
+			{
+				"internalType": "string[]",
+				"name": "",
+				"type": "string[]"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
 		"inputs": [
 			{
 				"internalType": "string",
@@ -115,10 +153,39 @@
 				"type": "string"
 			},
 			{
+				"internalType": "string",
+				"name": "",
+				"type": "string"
+			},
+			{
 				"internalType": "uint256",
 				"name": "",
 				"type": "uint256"
 			},
+			{
+				"internalType": "bool",
+				"name": "",
+				"type": "bool"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "string",
+				"name": "_studyID",
+				"type": "string"
+			},
+			{
+				"internalType": "address",
+				"name": "_validator",
+				"type": "address"
+			}
+		],
+		"name": "hasVoted",
+		"outputs": [
 			{
 				"internalType": "bool",
 				"name": "",
@@ -175,9 +242,9 @@
 				"type": "string"
 			},
 			{
-				"internalType": "bytes32",
-				"name": "dataHash",
-				"type": "bytes32"
+				"internalType": "string",
+				"name": "cid",
+				"type": "string"
 			},
 			{
 				"internalType": "uint256",
@@ -196,6 +263,25 @@
 	{
 		"inputs": [
 			{
+				"internalType": "uint256",
+				"name": "",
+				"type": "uint256"
+			}
+		],
+		"name": "studyList",
+		"outputs": [
+			{
+				"internalType": "string",
+				"name": "",
+				"type": "string"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
 				"internalType": "string",
 				"name": "_studyID",
 				"type": "string"
@@ -206,9 +292,9 @@
 				"type": "string"
 			},
 			{
-				"internalType": "bytes32",
-				"name": "_dataHash",
-				"type": "bytes32"
+				"internalType": "string",
+				"name": "_cid",
+				"type": "string"
 			}
 		],
 		"name": "submitStudy",
