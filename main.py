@@ -10,7 +10,7 @@ from backend.add_validator import add_validator
 from backend.routes.dash import router as dashboard_router
 from dotenv import load_dotenv
 import os
-os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = "crop-climate-3513c60299c8.json"
+os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = "crop-climate-3932749433d7.json"
 
 load_dotenv()
 

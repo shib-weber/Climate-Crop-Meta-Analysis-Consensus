@@ -3,3 +3,7 @@ pandas
 python-dotenv
 db-dtypes
 google-cloud-bigquery
+uvicorn
+fastapi
+mysql-connector-python
+python-multipart
