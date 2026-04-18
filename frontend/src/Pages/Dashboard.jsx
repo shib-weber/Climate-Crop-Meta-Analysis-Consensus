@@ -93,24 +93,16 @@ const handleUpload = async () => {
     // 🔹 STEP 2: Send to blockchain via MetaMask
     const web3 = new Web3(window.ethereum);
     const contract = new web3.eth.Contract(contractABI, contractAddress);
-
-try {
-  await contract.methods
-    .submitStudy(studyID, doi, cid)
-    .call({ from: account });
-
-  console.log("CALL SUCCESS");
-} catch (err) {
-  console.error("FULL ERROR:", err);
-
-  if (err?.data) {
-    console.error("ERROR DATA:", err.data);
-  }
+try{
+await contract.methods
+  .submitStudy(studyID, doi, cid)
+  .send({ 
+    from: account,
+    gas: 3000000  
+  });
+  } catch (err) {
+  console.log("Revert reason:", err?.data?.message); // This will show the exact require() that failed
 }
-
-    await contract.methods
-      .submitStudy(studyID, doi, cid)
-      .send({ from: account });
 
     alert("✅ Uploaded & Submitted to Blockchain!");
 

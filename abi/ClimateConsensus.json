@@ -8,10 +8,10 @@
 		"anonymous": false,
 		"inputs": [
 			{
-				"indexed": false,
-				"internalType": "string",
-				"name": "studyID",
-				"type": "string"
+				"indexed": true,
+				"internalType": "bytes32",
+				"name": "studyHash",
+				"type": "bytes32"
 			},
 			{
 				"indexed": false,
@@ -26,6 +26,12 @@
 	{
 		"anonymous": false,
 		"inputs": [
+			{
+				"indexed": true,
+				"internalType": "bytes32",
+				"name": "studyHash",
+				"type": "bytes32"
+			},
 			{
 				"indexed": false,
 				"internalType": "string",
@@ -52,10 +58,10 @@
 		"anonymous": false,
 		"inputs": [
 			{
-				"indexed": false,
-				"internalType": "string",
-				"name": "studyID",
-				"type": "string"
+				"indexed": true,
+				"internalType": "bytes32",
+				"name": "studyHash",
+				"type": "bytes32"
 			}
 		],
 		"name": "StudyVerified",
@@ -72,6 +78,19 @@
 			}
 		],
 		"name": "ValidatorAdded",
+		"type": "event"
+	},
+	{
+		"anonymous": false,
+		"inputs": [
+			{
+				"indexed": false,
+				"internalType": "address",
+				"name": "validator",
+				"type": "address"
+			}
+		],
+		"name": "ValidatorRemoved",
 		"type": "event"
 	},
 	{
@@ -209,6 +228,19 @@
 		"type": "function"
 	},
 	{
+		"inputs": [
+			{
+				"internalType": "address",
+				"name": "_validator",
+				"type": "address"
+			}
+		],
+		"name": "removeValidator",
+		"outputs": [],
+		"stateMutability": "nonpayable",
+		"type": "function"
+	},
+	{
 		"inputs": [],
 		"name": "requiredApprovals",
 		"outputs": [
@@ -224,59 +256,14 @@
 	{
 		"inputs": [
 			{
-				"internalType": "string",
-				"name": "",
-				"type": "string"
-			}
-		],
-		"name": "studies",
-		"outputs": [
-			{
-				"internalType": "string",
-				"name": "studyID",
-				"type": "string"
-			},
-			{
-				"internalType": "string",
-				"name": "doi",
-				"type": "string"
-			},
-			{
-				"internalType": "string",
-				"name": "cid",
-				"type": "string"
-			},
-			{
 				"internalType": "uint256",
-				"name": "approvals",
-				"type": "uint256"
-			},
-			{
-				"internalType": "bool",
-				"name": "verified",
-				"type": "bool"
-			}
-		],
-		"stateMutability": "view",
-		"type": "function"
-	},
-	{
-		"inputs": [
-			{
-				"internalType": "uint256",
-				"name": "",
+				"name": "_count",
 				"type": "uint256"
 			}
 		],
-		"name": "studyList",
-		"outputs": [
-			{
-				"internalType": "string",
-				"name": "",
-				"type": "string"
-			}
-		],
-		"stateMutability": "view",
+		"name": "setRequiredApprovals",
+		"outputs": [],
+		"stateMutability": "nonpayable",
 		"type": "function"
 	},
 	{
@@ -324,9 +311,9 @@
 	{
 		"inputs": [
 			{
-				"internalType": "string",
+				"internalType": "bytes32",
 				"name": "",
-				"type": "string"
+				"type": "bytes32"
 			},
 			{
 				"internalType": "address",

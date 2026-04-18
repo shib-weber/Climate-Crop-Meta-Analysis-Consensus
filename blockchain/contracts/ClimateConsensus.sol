@@ -1,31 +1,33 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.0;
+pragma solidity ^0.8.20;
 
 contract ClimateConsensus {
 
     struct Study {
-        string studyID;
+        string studyID;   // human readable
         string doi;
         string cid;
         uint256 approvals;
         bool verified;
+        bool exists;
     }
 
     address public owner;
     uint256 public requiredApprovals = 2;
 
-    // 🔹 Storage
-    mapping(string => Study) public studies;
+    // 🔹 Optimized storage (bytes32 keys)
+    mapping(bytes32 => Study) private studies;
     mapping(address => bool) public validators;
-    mapping(string => mapping(address => bool)) public voted;
+    mapping(bytes32 => mapping(address => bool)) public voted;
 
-    string[] public studyList; // ✅ IMPORTANT (for listing)
+    bytes32[] private studyList;
 
     // 🔔 Events
-    event StudySubmitted(string studyID, string doi, string cid);
-    event StudyApproved(string studyID, address validator);
-    event StudyVerified(string studyID);
+    event StudySubmitted(bytes32 indexed studyHash, string studyID, string doi, string cid);
+    event StudyApproved(bytes32 indexed studyHash, address validator);
+    event StudyVerified(bytes32 indexed studyHash);
     event ValidatorAdded(address validator);
+    event ValidatorRemoved(address validator);
 
     constructor() {
         owner = msg.sender;
@@ -42,11 +44,26 @@ contract ClimateConsensus {
         _;
     }
 
+    // 🔑 Internal hash function
+    function _hash(string memory _studyID) internal pure returns (bytes32) {
+        return keccak256(abi.encodePacked(_studyID));
+    }
+
     // ➕ Add validator
-    function addValidator(address _validator) public onlyOwner {
+    function addValidator(address _validator) external onlyOwner {
         require(_validator != address(0), "Invalid address");
+        require(!validators[_validator], "Already validator");
+
         validators[_validator] = true;
         emit ValidatorAdded(_validator);
+    }
+
+    // ➖ Remove validator (NEW)
+    function removeValidator(address _validator) external onlyOwner {
+        require(validators[_validator], "Not validator");
+
+        validators[_validator] = false;
+        emit ValidatorRemoved(_validator);
     }
 
     // 📤 Submit study
@@ -54,46 +71,51 @@ contract ClimateConsensus {
         string memory _studyID,
         string memory _doi,
         string memory _cid
-    ) public {
+    ) external {
         require(bytes(_studyID).length > 0, "Invalid ID");
         require(bytes(_cid).length > 0, "Invalid CID");
 
-        // Prevent duplicate
-        require(bytes(studies[_studyID].studyID).length == 0, "Study exists");
+        bytes32 id = _hash(_studyID);
 
-        studies[_studyID] = Study({
+        require(!studies[id].exists, "Study exists");
+
+        studies[id] = Study({
             studyID: _studyID,
             doi: _doi,
             cid: _cid,
             approvals: 0,
-            verified: false
+            verified: false,
+            exists: true
         });
 
-        studyList.push(_studyID); // ✅ store ID
+        studyList.push(id);
 
-        emit StudySubmitted(_studyID, _doi, _cid);
+        emit StudySubmitted(id, _studyID, _doi, _cid);
     }
 
-    // ✅ Approve study (ONE vote per validator)
-    function approveStudy(string memory _studyID) public onlyValidator {
-        require(bytes(studies[_studyID].studyID).length != 0, "Study not found");
-        require(!voted[_studyID][msg.sender], "Already voted");
+    // ✅ Approve study
+    function approveStudy(string memory _studyID) external onlyValidator {
+        bytes32 id = _hash(_studyID);
 
-        studies[_studyID].approvals++;
-        voted[_studyID][msg.sender] = true;
+        require(studies[id].exists, "Study not found");
+        require(!studies[id].verified, "Already verified");
+        require(!voted[id][msg.sender], "Already voted");
 
-        emit StudyApproved(_studyID, msg.sender);
+        studies[id].approvals++;
+        voted[id][msg.sender] = true;
+
+        emit StudyApproved(id, msg.sender);
 
         // 🎯 Consensus
-        if (studies[_studyID].approvals >= requiredApprovals) {
-            studies[_studyID].verified = true;
-            emit StudyVerified(_studyID);
+        if (studies[id].approvals >= requiredApprovals) {
+            studies[id].verified = true;
+            emit StudyVerified(id);
         }
     }
 
     // 📖 Get single study
     function getStudy(string memory _studyID)
-        public
+        external
         view
         returns (
             string memory,
@@ -103,62 +125,69 @@ contract ClimateConsensus {
             bool
         )
     {
-        require(bytes(studies[_studyID].studyID).length != 0, "Study not found");
+        bytes32 id = _hash(_studyID);
 
-        Study memory s = studies[_studyID];
+        require(studies[id].exists, "Study not found");
+
+        Study memory s = studies[id];
         return (s.studyID, s.doi, s.cid, s.approvals, s.verified);
     }
 
-    // 📚 Get all study IDs
-    function getAllStudies() public view returns (string[] memory) {
-        return studyList;
+    // 📚 Get all study IDs (WARNING: grows unbounded)
+    function getAllStudies() external view returns (string[] memory) {
+        string[] memory result = new string[](studyList.length);
+
+        for (uint i = 0; i < studyList.length; i++) {
+            result[i] = studies[studyList[i]].studyID;
+        }
+
+        return result;
     }
 
-    // 🔍 Check if validator voted
+    // 🔍 Check vote
     function hasVoted(string memory _studyID, address _validator)
-        public
+        external
         view
         returns (bool)
     {
-        return voted[_studyID][_validator];
+        bytes32 id = _hash(_studyID);
+        return voted[id][_validator];
     }
 
-    // 🧠 Get ONLY pending studies for validator (NOT voted + NOT verified)
+    // 🧠 Get pending studies (optimized)
     function getPendingStudies(address _validator)
-        public
+        external
         view
         returns (string[] memory)
     {
         uint count = 0;
 
-        // First pass: count
+        // count first
         for (uint i = 0; i < studyList.length; i++) {
-            string memory id = studyList[i];
+            bytes32 id = studyList[i];
 
-            if (
-                !voted[id][_validator] &&
-                !studies[id].verified
-            ) {
+            if (!voted[id][_validator] && !studies[id].verified) {
                 count++;
             }
         }
 
-        // Second pass: store
         string[] memory result = new string[](count);
         uint index = 0;
 
         for (uint i = 0; i < studyList.length; i++) {
-            string memory id = studyList[i];
+            bytes32 id = studyList[i];
 
-            if (
-                !voted[id][_validator] &&
-                !studies[id].verified
-            ) {
-                result[index] = id;
-                index++;
+            if (!voted[id][_validator] && !studies[id].verified) {
+                result[index++] = studies[id].studyID;
             }
         }
 
         return result;
+    }
+
+    // ⚙️ Update approvals (NEW flexibility)
+    function setRequiredApprovals(uint256 _count) external onlyOwner {
+        require(_count > 0, "Invalid count");
+        requiredApprovals = _count;
     }
 }
