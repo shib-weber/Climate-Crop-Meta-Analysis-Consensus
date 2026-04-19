@@ -1,4 +1,4 @@
-from fastapi import FastAPI,UploadFile, File,HTTPException,Form
+from fastapi import FastAPI,UploadFile, File,HTTPException,Form,Body
 from pydantic import BaseModel
 import mysql.connector
 from mysql.connector import pooling
@@ -94,10 +94,14 @@ async def submit_study(
 def meta_analysis_call():
     return meta_analysis()
 
-@app.post("/make-validator")
-def make_validator(wallet: str):
+@app.post("/make_validator")
+
+async def make_validator(wallet: str=Body(...)):
+    print('here')
+    print(wallet)
+    c_wallet = wallet.strip().strip('"')
     try:
-        tx_hash = add_validator(wallet)
+        tx_hash = add_validator(c_wallet)
         return {
             "status": "success",
             "tx_hash": tx_hash

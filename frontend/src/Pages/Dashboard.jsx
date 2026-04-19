@@ -22,6 +22,9 @@ function Dashboard() {
   const [file, setFile] = useState(null);
   const [loading, setLoading] = useState(false);
   const { account, role, connectWallet } = useMetaMaskLogin();
+  const [validator,setValidator]=useState(null)
+  const [validres,setValidres] = useState(null)
+  const [color,setColor] = useState(null)
 
   const [stats, setStats] = useState({
     correlation: 0,
@@ -58,12 +61,12 @@ function Dashboard() {
     }
   };
 
-  // 🚀 Upload function
 const handleUpload = async () => {
   if (!file) return alert("Select file");
 
   const formData = new FormData();
   formData.append("file", file);
+
   const studyID = "study_" + Date.now();
   const doi = "10.1000/test";
 
@@ -73,49 +76,43 @@ const handleUpload = async () => {
   try {
     setLoading(true);
 
-    // 🔹 STEP 1: Upload to backend (Pinata)
+    // 🔹 STEP 1: Upload to backend → get CID
     const res = await fetch("http://127.0.0.1:8000/submit_study", {
       method: "POST",
       body: formData,
     });
 
-    
     const data = await res.json();
-    
 
     if (data.status !== "success") {
       throw new Error(data.message);
     }
 
     const cid = data.cid;
-    console.log("CID from backend:", cid);
+    console.log("CID:", cid);
 
-    // 🔹 STEP 2: Send to blockchain via MetaMask
+    // 🔹 STEP 2: Send transaction via MetaMask
     const web3 = new Web3(window.ethereum);
-    const contract = new web3.eth.Contract(contractABI, contractAddress);
-try{
-await contract.methods
-  .submitStudy(studyID, doi, cid)
-  .send({ 
-    from: account,
-    gas: 3000000  
-  });
-  } catch (err) {
-  console.log("Revert reason:", err?.data?.message); // This will show the exact require() that failed
-}
 
-    alert("✅ Uploaded & Submitted to Blockchain!");
+    const contract = new web3.eth.Contract(
+      contractABI,
+      contractAddress
+    );
 
-    setFile(null);
+    await contract.methods
+      .submitStudy(studyID, doi, cid)
+      .send({ from: account });
+
+    alert("✅ Stored on Blockchain!");
 
   } catch (err) {
     console.error(err);
-    alert("Upload failed");
+    alert("Upload failed: " + err.message);
   }
 
   setLoading(false);
 };
-  // 🎯 Smart button behavior
+
   const handleButtonClick = () => {
     if (!file) {
       fileInputRef.current.click();
@@ -137,6 +134,27 @@ await contract.methods
         </button>
       </div>
     );
+  }
+
+  const handleMakeValidator = async()=>{
+    console.log(validator)
+    const wallet = validator;
+    const res_for_validation = await fetch('http://127.0.0.1:8000/make_validator',{
+      method :'POST',
+      header:{'Content-Type':'application/json'},
+      body:JSON.stringify(wallet)
+    })
+
+    const response = await res_for_validation.json()
+    console.log(response)
+    if(response.status=='success'){
+      setValidres(response.tx_hash)
+      setColor(response.status)
+    }else{
+      setValidres(response.message)
+      setColor(response.status)
+    }
+
   }
 
   return (
@@ -161,6 +179,20 @@ await contract.methods
 
           {/* LEFT PANEL */}
           <div className="space-y-6">
+
+            {role === "owner" && (
+              <section className="bg-gray-900 p-6 rounded-2xl border border-blue-900/30">
+                <h2 className="text-xl font-bold mb-4">🛡️ Owner Actions</h2>
+                <input onChange={(e) => setValidator(e.target.value)} className="p-4 shadow-sm shadow-white outline-none py-3 w-full rounded-xl mb-2" type="text"></input>
+                <span className={`h-auto  ${color==='success'? 'text-green-400': 'text-red-400'} w-full rounded-xl mb-2`}>{validres}</span>
+                <button className="bg-blue-600 py-3 w-full rounded-xl mb-2" onClick={handleMakeValidator}>
+                  Make Validator
+                </button>
+                <button className="bg-gray-800 py-3 w-full rounded-xl">
+                  View Audit Logs
+                </button>
+              </section>
+            )}
 
             {role === "validator" && (
               <section className="bg-gray-900 p-6 rounded-2xl border border-blue-900/30">
